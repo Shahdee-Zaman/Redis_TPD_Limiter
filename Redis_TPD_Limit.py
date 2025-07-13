@@ -1,21 +1,23 @@
 import redis
 from datetime import datetime, timezone
 
-# ----------------- Start Of Class Creation -----
+# ----------------- Start Of Class Creation -----------------
 
-class TPDLimit():
+class TPDLimit:
 
-    def __init__(self, host, port, limit):
+    """
+        Create a redis database that keeps real time track of all tokens called using word count.
+        Redis will allow for easy tracking of token usage and ensure a restart does not result in loss of token use.
+        Generate and response_count need to be called for proper tracking.
+        Generate requires a single parameter that includes all inputs (System Instruction and user prompt).
+        Response requires a single parameter which is the AI response.
+    """
+
+    def __init__(self, host, port, limit, db=0):
         # Redis setup
-        self.database = redis.Redis(host=host, port=port)
-        # Setting TPD Usage Limit
-        self.Gemini_TPD_limit = limit
-
-    # Decode returned values from bytes
-    def redis_decoder(self, value):
-        decoded = self.database.get(value)
-        return decoded if decoded else None
-
+        self.database = redis.Redis(host, port, db)
+        # Setting TPD Usage Limit. Leaving Extra space for outputs.
+        self.Gemini_TPD_limit = limit - 10000
 
     # Check for Daily TPD reset
     def check_daily_reset(self):
@@ -35,21 +37,43 @@ class TPDLimit():
             return True
         return False
 
-    # Returns the amount of tokens used
+
+
+
+# ----------------- End Of Class Creation -----------------
+
+    # ----------------- Helper Functions -----------------
+
+    # Returns the number of tokens used
     def token_used(self):
-        return int(self.redis_decoder('token_usage'))
+        self.check_daily_reset()
+        if self.redis_decoder('token_usage'):
+            return int(self.redis_decoder('token_usage'))
 
+        # Return 0 if no token was called since Redis initialization
+        else:
+            return 0
 
+    # Decode returned values from bytes
+    def redis_decoder(self, value):
+        decoded = self.database.get(value)
+        return decoded.decode() if decoded else None
 
-# ----------------- End Of Class Creation -----
+    # ----------------- End of Helper Functions -----------------
 
+    # ----------------- Main Function -----------------
+
+    # The required function that needs to be called to properly run the Class
+    # Returns True if the api call can proceed
     def generate(self, prompt):
         self.check_daily_reset()
         if self.has_tokens(prompt):
             return True
         return False
 
-
+    # Increments the token count of response
+    def response_count(self, response):
+        self.database.incrby('token_usage', len(response))
 
 
 
