@@ -7,19 +7,19 @@ class TPDLimit:
 
     """
         Create a redis database that keeps real time track of all tokens called using word count.
-        Redis will allow for easy tracking of token usage and ensure a restart does not result in loss of token use.
+        Redis will allow for easy tracking of word usage and ensure a restart does not result in loss of count.
         Generate and response_count need to be called for proper tracking.
         Generate requires a single parameter that includes all inputs (System Instruction and user prompt).
-        Response requires a single parameter which is the AI response.
+        Response requires a single parameter which is the response.
     """
 
     def __init__(self, host, port, limit, db=0):
         # Redis setup
         self.database = redis.Redis(host, port, db)
-        # Setting TPD Usage Limit. Leaving Extra space for outputs.
-        self.Gemini_TPD_limit = limit - 10000
+        # Setting WPD Usage Limit. Leaving Extra space for outputs.
+        self.AI_WPD_limit = limit - 10000
 
-    # Check for Daily TPD reset
+    # Check for Daily WPD reset
     def check_daily_reset(self):
         current_date = datetime.now(timezone.utc).strftime('%y:%m:%d')
         # Decode the date to compare with current_date
@@ -28,11 +28,11 @@ class TPDLimit:
             self.database.set('token_usage', 0)
 
 
-    # Check if the prompt is within TPD limit
+    # Check if the prompt is within WPD limit
     def has_tokens(self, input):
         estimated_total = int(self.redis_decoder('token_usage')) + len(input)
-        # Resulting input will exceed TPD usage limit
-        if estimated_total <= self.Gemini_TPD_limit:
+        # Resulting input will exceed WPD usage limit
+        if estimated_total <= self.AI_WPD_limit:
             self.database.incrby('token_usage', len(input))
             return True
         return False
@@ -44,13 +44,13 @@ class TPDLimit:
 
     # ----------------- Helper Functions -----------------
 
-    # Returns the number of tokens used
+    # Returns the number of words used
     def token_used(self):
         self.check_daily_reset()
         if self.redis_decoder('token_usage'):
             return int(self.redis_decoder('token_usage'))
 
-        # Return 0 if no token was called since Redis initialization
+        # Return 0 if no word has been added
         else:
             return 0
 
@@ -71,7 +71,7 @@ class TPDLimit:
             return True
         return False
 
-    # Increments the token count of response
+    # Increments the word count of response
     def response_count(self, response):
         self.database.incrby('token_usage', len(response))
 

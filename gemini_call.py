@@ -1,13 +1,10 @@
 import os
 import google.generativeai as genai
-from Redis_TPD_Limit import TPDLimit
+from Redis_WPD_Limit import TPDLimit
 
 """
-    Google's Gemini api is used as it allows free calls.
-    If you have your api key set as an environment variable, you do not need to pass it directly in Generative AI.
-    Google also has separate TPD(Token per Day) for each model.
-    You can keep track of each model and move on to the next model when you reach you TPD limit.
-    Limit is for token used is lower by 10000 in TPDLimit for any response however it is still advised to pass a lower number in case of lengthy response. 
+    This is an example class to show usage of Redis_WPD_Limit.
+    Limit is for token used is lower by 10000 in WPDLimit for any response however it is still advised to pass a lower number in case of lengthy response. 
 """
 
 # Uncomment and pass your API key below if you do not wish to set the environment variable.
